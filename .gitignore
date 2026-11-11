@@ -1,0 +1,22 @@
+## .NET Core / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+## Environment / Secrets
+.env
+appsettings.Development.json
+*.local.json
+
+## Docker
+postgres_data/
+redis_data/
+
+## OS generated
+.DS_Store
+Thumbs.db

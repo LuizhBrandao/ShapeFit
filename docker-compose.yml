@@ -1,0 +1,34 @@
+services:
+  shapefit-postgres:
+    image: postgres:16-alpine
+    container_name: shapefit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shapefit_user
+      POSTGRES_PASSWORD: shapefit_password
+      POSTGRES_DB: shapefit_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - shapefit-net
+
+  shapefit-redis:
+    image: redis:7-alpine
+    container_name: shapefit-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - shapefit-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  shapefit-net:
+    driver: bridge

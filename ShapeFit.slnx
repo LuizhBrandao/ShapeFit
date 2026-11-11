@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ShapeFit.Api/ShapeFit.Api.csproj" />
+    <Project Path="src/ShapeFit.Application/ShapeFit.Application.csproj" />
+    <Project Path="src/ShapeFit.Domain/ShapeFit.Domain.csproj" />
+    <Project Path="src/ShapeFit.Infrastructure/ShapeFit.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ShapeFit.Domain.Tests/ShapeFit.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
