@@ -34,7 +34,10 @@ public record LogWorkoutCommand(
     DateTime? FinishedAt,
     Guid? ClientSyncId,
     string? Notes,
-    List<LogExerciseCommand> Exercises
+    List<LogExerciseCommand> Exercises,
+    Guid? RoutineTemplateId = null,
+    Guid? RoutineDayId = null,
+    Guid? MesocycleId = null
 ) : IRequest<Guid>;
 
 public class LogWorkoutCommandValidator : AbstractValidator<LogWorkoutCommand>
@@ -61,13 +64,16 @@ public class LogWorkoutCommandHandler : IRequestHandler<LogWorkoutCommand, Guid>
 {
     private readonly IWorkoutSessionRepository _repository;
     private readonly ICacheService _cacheService;
+    private readonly IMesocycleRepository _mesocycleRepository;
 
     public LogWorkoutCommandHandler(
         IWorkoutSessionRepository repository,
-        ICacheService cacheService)
+        ICacheService cacheService,
+        IMesocycleRepository mesocycleRepository)
     {
         _repository = repository;
         _cacheService = cacheService;
+        _mesocycleRepository = mesocycleRepository;
     }
 
     public async Task<Guid> Handle(LogWorkoutCommand request, CancellationToken cancellationToken)
@@ -83,13 +89,31 @@ public class LogWorkoutCommandHandler : IRequestHandler<LogWorkoutCommand, Guid>
             }
         }
 
+        // Resolução do Mesociclo:
+        // Se MesocycleId foi passado diretamente, buscamos por ele.
+        // Se apenas RoutineTemplateId foi passado, resolvemos o mesociclo ativo vinculado à rotina.
+        Mesocycle? activeMesocycle = null;
+        if (request.MesocycleId.HasValue)
+        {
+            activeMesocycle = await _mesocycleRepository.GetByIdAsync(request.MesocycleId.Value, cancellationToken);
+        }
+        else if (request.RoutineTemplateId.HasValue)
+        {
+            activeMesocycle = await _mesocycleRepository.GetActiveByRoutineIdAsync(request.RoutineTemplateId.Value, cancellationToken);
+        }
+
+        var resolvedMesocycleId = activeMesocycle?.Id ?? request.MesocycleId;
+
         var session = new WorkoutSession(
             request.Id ?? Guid.NewGuid(),
             request.UserId,
             request.Name,
             request.StartedAt,
             request.ClientSyncId,
-            request.Notes
+            request.Notes,
+            request.RoutineTemplateId,
+            request.RoutineDayId,
+            resolvedMesocycleId
         );
 
         if (request.FinishedAt.HasValue)
@@ -134,6 +158,13 @@ public class LogWorkoutCommandHandler : IRequestHandler<LogWorkoutCommand, Guid>
 
         await _repository.AddAsync(session, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        // Incremento automático e rastreável do Mesociclo de 30 treinos
+        if (activeMesocycle != null && activeMesocycle.Status == MesocycleStatus.Active)
+        {
+            activeMesocycle.RecordSessionCompletion(session.Id, session.FinishedAt ?? DateTime.UtcNow);
+            await _mesocycleRepository.SaveChangesAsync(cancellationToken);
+        }
 
         // Invalidação reativa do Hot Cache de última performance no Redis para cada exercício executado
         foreach (var exerciseCommand in request.Exercises)
