@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../models/beginner_exercise_guide.dart';
 import '../models/custom_routine_model.dart';
 import '../models/workout_enums.dart';
 import '../providers/active_workout_provider.dart';
@@ -16,26 +17,7 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
   final _nameController = TextEditingController(text: 'Minha Nova Ficha');
   final _descController = TextEditingController();
   final List<CustomRoutineExerciseTemplate> _selectedExercises = [];
-
-  // Banco de exercícios disponíveis para adicionar à ficha
-  final List<Map<String, dynamic>> _catalogExercises = [
-    {'name': 'Supino Inclinado com Halteres', 'muscle': MuscleGroup.chest},
-    {'name': 'Supino Reto com Barra', 'muscle': MuscleGroup.chest},
-    {'name': 'Crucifixo na Polia (Crossover)', 'muscle': MuscleGroup.chest},
-    {'name': 'Puxada Frontal na Polia', 'muscle': MuscleGroup.back},
-    {'name': 'Remada Baixa com Triângulo', 'muscle': MuscleGroup.back},
-    {'name': 'Remada Curvada com Barra', 'muscle': MuscleGroup.back},
-    {'name': 'Desenvolvimento com Halteres', 'muscle': MuscleGroup.shoulders},
-    {'name': 'Elevação Lateral', 'muscle': MuscleGroup.shoulders},
-    {'name': 'Face Pull na Polia', 'muscle': MuscleGroup.shoulders},
-    {'name': 'Tríceps Corda na Polia', 'muscle': MuscleGroup.triceps},
-    {'name': 'Rosca Direta Barra W', 'muscle': MuscleGroup.biceps},
-    {'name': 'Agachamento Hack / Livre', 'muscle': MuscleGroup.quadriceps},
-    {'name': 'Cadeira Extensora', 'muscle': MuscleGroup.quadriceps},
-    {'name': 'Mesa Flexora', 'muscle': MuscleGroup.hamstrings},
-    {'name': 'Panturrilha Sentado (Gêmeos)', 'muscle': MuscleGroup.calves},
-    {'name': 'Abdominal na Polia / Crunch', 'muscle': MuscleGroup.abs},
-  ];
+  MuscleGroup? _filterMuscle;
 
   @override
   void dispose() {
@@ -47,31 +29,106 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
   void _showAddExerciseDialog() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1E1E1E),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _catalogExercises.length,
-          itemBuilder: (context, index) {
-            final ex = _catalogExercises[index];
-            final muscle = ex['muscle'] as MuscleGroup;
-            return ListTile(
-              title: Text(ex['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-              subtitle: Text(muscle.displayName, style: const TextStyle(color: Colors.blueAccent, fontSize: 12)),
-              trailing: const Icon(Icons.add_circle_outline, color: Colors.blueAccent),
-              onTap: () {
-                setState(() {
-                  _selectedExercises.add(
-                    CustomRoutineExerciseTemplate(
-                      exerciseId: 'custom-ex-${const Uuid().v4()}',
-                      name: ex['name'],
-                      targetMuscle: muscle,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final guides = BeginnerExerciseGuideRepository.allGuides.where((g) {
+              if (_filterMuscle == null) return true;
+              return g.targetMuscle == _filterMuscle;
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
                     ),
-                  );
-                });
-                Navigator.pop(ctx);
-              },
+                  ),
+                  const Text('Catálogo de Exercícios', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  // Filtro por Músculo
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        FilterChip(
+                          label: const Text('Todos'),
+                          selected: _filterMuscle == null,
+                          selectedColor: Colors.blueAccent,
+                          labelStyle: TextStyle(color: _filterMuscle == null ? Colors.white : Colors.white70),
+                          onSelected: (_) {
+                            setModalState(() => _filterMuscle = null);
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        ...[
+                          MuscleGroup.chest,
+                          MuscleGroup.back,
+                          MuscleGroup.shoulders,
+                          MuscleGroup.biceps,
+                          MuscleGroup.triceps,
+                          MuscleGroup.quadriceps,
+                          MuscleGroup.hamstrings,
+                          MuscleGroup.glutes,
+                          MuscleGroup.calves,
+                          MuscleGroup.abs,
+                        ].map((m) {
+                          final isSel = _filterMuscle == m;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: FilterChip(
+                              label: Text(m.displayName),
+                              selected: isSel,
+                              selectedColor: Colors.blueAccent,
+                              labelStyle: TextStyle(color: isSel ? Colors.white : Colors.white70),
+                              onSelected: (_) {
+                                setModalState(() => _filterMuscle = m);
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.white12, height: 20),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: guides.length,
+                      itemBuilder: (context, index) {
+                        final guide = guides[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                          title: Text(guide.exerciseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                          subtitle: Text('${guide.targetMuscle.displayName} • ${guide.machineName}', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                          trailing: const Icon(Icons.add_circle, color: Colors.blueAccent, size: 28),
+                          onTap: () {
+                            setState(() {
+                              _selectedExercises.add(
+                                CustomRoutineExerciseTemplate(
+                                  exerciseId: 'custom-ex-${const Uuid().v4()}',
+                                  name: guide.exerciseName,
+                                  targetMuscle: guide.targetMuscle,
+                                ),
+                              );
+                            });
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         );
@@ -102,7 +159,7 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
           : '${_selectedExercises.length} exercícios personalizados',
       exercises: _selectedExercises,
       completedCount: 0,
-      targetCount: 30, // 30 treinos independentes dessa ficha
+      targetCount: 30,
     );
 
     context.read<ActiveWorkoutProvider>().addCustomRoutine(newRoutine);
@@ -135,7 +192,6 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Campo Nome da Ficha
           const Text('NOME DA ROTINA', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
           const SizedBox(height: 6),
           TextField(
@@ -151,7 +207,6 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Campo Descrição
           const Text('DESCRIÇÃO OU OBSERVAÇÃO (OPCIONAL)', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
           const SizedBox(height: 6),
           TextField(
@@ -167,7 +222,6 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Cabeçalho da Lista de Exercícios
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -198,7 +252,7 @@ class _CreateCustomRoutineScreenState extends State<CreateCustomRoutineScreen> {
                   SizedBox(height: 12),
                   Text('Nenhum exercício adicionado ainda.', style: TextStyle(color: Colors.white54, fontSize: 14)),
                   SizedBox(height: 4),
-                  Text('Toque em "Adicionar Exercício" acima para montar sua lista.', style: TextStyle(color: Colors.white30, fontSize: 12)),
+                  Text('Toque em "Adicionar Exercício" acima para escolher da lista ampliada.', style: TextStyle(color: Colors.white30, fontSize: 12)),
                 ],
               ),
             )
