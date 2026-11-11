@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/exercise_instruction.dart';
+import 'biomechanical_animation_viewer.dart';
 
 class ExerciseVideoModal extends StatelessWidget {
   final String exerciseName;
@@ -69,7 +70,7 @@ class ExerciseVideoModal extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           const Text(
-                            '• Loop curto (4 a 8s) • Sem áudio',
+                            '• Vídeo/Animação em Loop Contínuo',
                             style: TextStyle(color: Colors.white38, fontSize: 11),
                           ),
                         ],
@@ -85,7 +86,7 @@ class ExerciseVideoModal extends StatelessWidget {
             ),
           ),
 
-          // Player de Animação em Loop Contínuo (como Hevy e Strong)
+          // Player de Animação Biomecânica Nativa com Loop Contínuo & Cadência 3-1-1
           Container(
             height: 230,
             width: double.infinity,
@@ -97,50 +98,7 @@ class ExerciseVideoModal extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Center(
-                    child: Image.network(
-                      instruction.gifLoopUrl,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(color: Colors.blueAccent),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.fitness_center, color: Colors.blueAccent, size: 48),
-                          const SizedBox(height: 8),
-                          Text(
-                            instruction.exerciseName,
-                            style: const TextStyle(color: Colors.white54, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.all(10),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.repeat, color: Colors.greenAccent, size: 14),
-                        SizedBox(width: 4),
-                        Text('LOOP CONTÍNUO', style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  )
-                ],
-              ),
+              child: BiomechanicalAnimationViewer(exerciseName: instruction.exerciseName),
             ),
           ),
 
