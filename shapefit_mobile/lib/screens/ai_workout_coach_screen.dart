@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+import '../models/custom_routine_model.dart';
 import '../models/workout_enums.dart';
 import '../providers/active_workout_provider.dart';
 import '../services/gemini_routine_service.dart';
@@ -18,13 +20,21 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
   bool _isLoading = false;
   RoutineRecommendation? _recommendation;
 
-  // Respostas coletadas pela IA interativa
+  // Parâmetros da IA Interativa (com escolha de divisão clássica)
+  String _selectedDivision = 'ABC (Push / Pull / Legs)';
   int _daysPerWeek = 4;
   String _fitnessLevel = 'Intermediário (1-3 anos de treino)';
   String _primaryGoal = 'Hipertrofia Máxima (Estética)';
   String _equipment = 'Academia Completa';
   int _duration = 60;
   final Set<String> _focusMuscles = {'Peito', 'Costas', 'Braços'};
+
+  final List<String> _divisionOptions = [
+    'AB (Superior / Inferior)',
+    'ABC (Push / Pull / Legs)',
+    'ABCD (Peito+Ombro / Costas+Trapézio / Pernas / Braços)',
+    'ABCDE (Isolamento Máximo 5 Dias)',
+  ];
 
   final List<String> _muscleOptions = [
     'Peito',
@@ -40,6 +50,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
   Future<void> _generatePlan() async {
     setState(() => _isLoading = true);
     final plan = await _coachService.generateRoutine(
+      divisionChoice: _selectedDivision,
       daysPerWeek: _daysPerWeek,
       fitnessLevel: _fitnessLevel,
       primaryGoal: _primaryGoal,
@@ -51,6 +62,54 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
       _isLoading = false;
       _recommendation = plan;
     });
+  }
+
+  void _saveAllDaysAsUserRoutines(BuildContext context) {
+    if (_recommendation == null) return;
+    final provider = context.read<ActiveWorkoutProvider>();
+
+    for (var day in _recommendation!.days) {
+      final template = CustomRoutineTemplate(
+        name: day.dayName,
+        description: '${day.exercises.length} exercícios gerados pela IA',
+        completedCount: 0,
+        targetCount: 30, // 30 treinos individuais dessa rotina
+        exercises: day.exercises.map((ex) {
+          MuscleGroup muscle = MuscleGroup.chest;
+          final target = ex.targetMuscle.toLowerCase();
+          if (target.contains('costa') || target.contains('dorsal')) {
+            muscle = MuscleGroup.back;
+          } else if (target.contains('ombro') || target.contains('deltoide')) {
+            muscle = MuscleGroup.shoulders;
+          } else if (target.contains('bíceps') || target.contains('biceps')) {
+            muscle = MuscleGroup.biceps;
+          } else if (target.contains('tríceps') || target.contains('triceps')) {
+            muscle = MuscleGroup.triceps;
+          } else if (target.contains('quadríceps') || target.contains('perna')) {
+            muscle = MuscleGroup.quadriceps;
+          } else if (target.contains('panturrilha')) {
+            muscle = MuscleGroup.calves;
+          } else if (target.contains('abdômen') || target.contains('core')) {
+            muscle = MuscleGroup.abs;
+          }
+
+          return CustomRoutineExerciseTemplate(
+            exerciseId: 'ai-ex-${const Uuid().v4()}',
+            name: ex.name,
+            targetMuscle: muscle,
+          );
+        }).toList(),
+      );
+
+      provider.addCustomRoutine(template);
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Todas as ${_recommendation!.days.length} fichas foram salvas nas Suas Rotinas com 30 treinos cada!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   void _importDayToActiveWorkout(BuildContext context, RoutineWorkoutDay day) {
@@ -70,6 +129,10 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
         muscle = MuscleGroup.triceps;
       } else if (target.contains('quadríceps') || target.contains('perna')) {
         muscle = MuscleGroup.quadriceps;
+      } else if (target.contains('panturrilha')) {
+        muscle = MuscleGroup.calves;
+      } else if (target.contains('abdômen') || target.contains('core')) {
+        muscle = MuscleGroup.abs;
       }
 
       workoutProvider.addExercise(
@@ -85,7 +148,6 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
         backgroundColor: Colors.blueAccent,
       ),
     );
-    Navigator.of(context).pop();
   }
 
   @override
@@ -99,7 +161,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
           children: [
             Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 22),
             SizedBox(width: 8),
-            Text('Coach IA • Montador de Ficha', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Coach IA • Escolha sua Divisão', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
       ),
@@ -120,16 +182,16 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
           children: [
             const CircularProgressIndicator(color: Colors.amberAccent),
             const SizedBox(height: 24),
-            const Text(
-              'Avaliando princípios de hipertrofia...',
+            Text(
+              'Montando a estrutura $_selectedDivision...',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Distribuindo o Volume Semanal Efetivo (MEV/MAV) para $_daysPerWeek dias com base no RP Periodization & Hevy/Boostcamp.',
+            const Text(
+              'Ajustando exercícios, faixas de repetições e RIR para o seu ciclo de 30 treinos.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white54, fontSize: 13),
+              style: TextStyle(color: Colors.white54, fontSize: 13),
             ),
           ],
         ),
@@ -146,7 +208,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
         type: StepperType.vertical,
         currentStep: _currentStep,
         onStepContinue: () {
-          if (_currentStep < 3) {
+          if (_currentStep < 4) {
             setState(() => _currentStep++);
           } else {
             _generatePlan();
@@ -158,7 +220,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
           }
         },
         controlsBuilder: (context, details) {
-          final isLast = _currentStep == 3;
+          final isLast = _currentStep == 4;
           return Padding(
             padding: const EdgeInsets.only(top: 20),
             child: Row(
@@ -171,7 +233,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                   ),
                   icon: Icon(isLast ? Icons.auto_awesome : Icons.arrow_forward),
                   label: Text(
-                    isLast ? 'GERAR ROTINA CIENTÍFICA' : 'PRÓXIMO',
+                    isLast ? 'GERAR MINHA DIVISÃO' : 'PRÓXIMO',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   onPressed: details.onStepContinue,
@@ -188,8 +250,48 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
           );
         },
         steps: [
+          // Passo 1: Escolha da Divisão Clássica (AB, ABC, ABCD, ABCDE)
           Step(
             isActive: _currentStep >= 0,
+            title: const Text('Qual Divisão de Treino Você Prefere?', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(_selectedDivision),
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _divisionOptions.map((div) {
+                final isSelected = _selectedDivision == div;
+                return InkWell(
+                  onTap: () => setState(() => _selectedDivision = div),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.amberAccent.withValues(alpha: 0.15) : const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: isSelected ? Colors.amberAccent : Colors.white10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(isSelected ? Icons.check_circle : Icons.radio_button_off, color: isSelected ? Colors.amberAccent : Colors.white38),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            div,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.white70,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          Step(
+            isActive: _currentStep >= 1,
             title: const Text('Disponibilidade e Tempo', style: TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text('$_daysPerWeek dias na semana • $_duration minutos por sessão'),
             content: Column(
@@ -223,8 +325,8 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
             ),
           ),
           Step(
-            isActive: _currentStep >= 1,
-            title: const Text('Objetivo & Nível de Experiência', style: TextStyle(fontWeight: FontWeight.bold)),
+            isActive: _currentStep >= 2,
+            title: const Text('Objetivo & Nível de Treino', style: TextStyle(fontWeight: FontWeight.bold)),
             content: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -269,9 +371,9 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
             ),
           ),
           Step(
-            isActive: _currentStep >= 2,
-            title: const Text('Grupos Musculares de Ênfase', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('${_focusMuscles.length} músculos selecionados para prioridade'),
+            isActive: _currentStep >= 3,
+            title: const Text('Músculos com Maior Foco', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('${_focusMuscles.length} músculos prioritários'),
             content: Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -296,8 +398,8 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
             ),
           ),
           Step(
-            isActive: _currentStep >= 3,
-            title: const Text('Local e Equipamentos', style: TextStyle(fontWeight: FontWeight.bold)),
+            isActive: _currentStep >= 4,
+            title: const Text('Equipamentos Disponíveis', style: TextStyle(fontWeight: FontWeight.bold)),
             content: Column(
               children: ['Academia Completa', 'Academia de Condomínio / Halteres Básicos', 'Calistenia / Barra Fixa / Paralelas'].map((eq) {
                 final isSelected = _equipment == eq;
@@ -344,12 +446,21 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.verified, color: Colors.amberAccent, size: 20),
-                    const SizedBox(width: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.verified, color: Colors.amberAccent, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          rec.divisionType.toUpperCase(),
+                          style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ],
+                    ),
                     Text(
-                      rec.divisionType.toUpperCase(),
-                      style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                      '${rec.days.length} Fichas',
+                      style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -363,13 +474,27 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                   rec.description,
                   style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
                 ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amberAccent,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    icon: const Icon(Icons.bookmark_add),
+                    label: const Text('SALVAR TODAS AS FICHAS NO MEU APP', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => _saveAllDaysAsUserRoutines(context),
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'DIAS DA SUA ROTINA:',
-            style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+          Text(
+            'FICHAS DA SUA DIVISÃO (${rec.days.length} TREINOS DIFERENTES):',
+            style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1),
           ),
           const SizedBox(height: 12),
           ...rec.days.map((day) => _buildDayCard(day)),
@@ -383,7 +508,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                 side: const BorderSide(color: Colors.white24),
               ),
               icon: const Icon(Icons.refresh),
-              label: const Text('Refazer Perguntas da IA'),
+              label: const Text('Escolher Outra Divisão com a IA'),
               onPressed: () => setState(() => _recommendation = null),
             ),
           )
@@ -405,9 +530,11 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  day.dayName,
-                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    day.dayName,
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
