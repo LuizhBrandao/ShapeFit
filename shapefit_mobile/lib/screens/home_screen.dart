@@ -4,6 +4,7 @@ import '../models/workout_enums.dart';
 import '../models/workout_models.dart';
 import '../providers/active_workout_provider.dart';
 import 'ai_workout_coach_screen.dart';
+import 'workout_history_calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,19 +40,23 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Treino',
             ),
             NavigationDestination(
+              icon: Icon(Icons.calendar_month_outlined),
+              selectedIcon: Icon(Icons.calendar_month, color: Colors.greenAccent),
+              label: 'Histórico',
+            ),
+            NavigationDestination(
               icon: Icon(Icons.auto_awesome_outlined),
               selectedIcon: Icon(Icons.auto_awesome, color: Colors.amberAccent),
               label: 'Coach IA',
             ),
             NavigationDestination(
               icon: Icon(Icons.bar_chart_outlined),
-              selectedIcon: Icon(Icons.bar_chart, color: Colors.greenAccent),
+              selectedIcon: Icon(Icons.bar_chart, color: Colors.purpleAccent),
               label: 'Analytics',
             ),
           ],
         ),
       ),
-      // Mini-player flutuante estilo Hevy/Spotify se o treino estiver rolando em background
       bottomSheet: hasActiveWorkout && _currentTabIndex != 0
           ? _buildActiveWorkoutMiniPlayer(context, workoutProvider)
           : null,
@@ -65,8 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ? _buildActiveWorkoutView(context, provider) 
             : _buildStartWorkoutHub(context, provider);
       case 1:
-        return const AiWorkoutCoachScreen();
+        return const WorkoutHistoryCalendarScreen();
       case 2:
+        return const AiWorkoutCoachScreen();
+      case 3:
         return _buildAnalyticsPreview();
       default:
         return Container();
@@ -115,8 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-                onPressed: () {},
+                icon: const Icon(Icons.calendar_month, color: Colors.greenAccent),
+                tooltip: 'Ver Calendário de Treinos',
+                onPressed: () => setState(() => _currentTabIndex = 1),
               )
             ],
           ),
@@ -124,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Banner da IA Coach
           InkWell(
-            onTap: () => setState(() => _currentTabIndex = 1),
+            onTap: () => setState(() => _currentTabIndex = 2),
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.all(18),
@@ -262,7 +270,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return SafeArea(
       child: Column(
         children: [
-          // Header com tempo e botão concluir estilo Hevy
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: const Color(0xFF181818),
@@ -297,8 +304,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(ok ? 'Treino sincronizado com sucesso!' : 'Treino salvo localmente (offline)!'),
+                          content: Text(ok ? 'Treino concluído e salvo no Calendário!' : 'Treino concluído e salvo no Calendário (offline)!'),
                           backgroundColor: ok ? Colors.green : Colors.orange,
+                          action: SnackBarAction(
+                            label: 'VER NO HISTÓRICO',
+                            textColor: Colors.white,
+                            onPressed: () => setState(() => _currentTabIndex = 1),
+                          ),
                         ),
                       );
                     }
@@ -346,7 +358,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // Header estilo Strong/Hevy
             const Row(
               children: [
                 SizedBox(width: 42, child: Center(child: Text('TIPO', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)))),
@@ -396,7 +407,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Row(
         children: [
-          // 1-Tap Set Type Switcher (Hevy / Strong pattern)
           InkWell(
             onTap: () => provider.toggleSetType(set),
             borderRadius: BorderRadius.circular(6),
@@ -416,7 +426,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Coluna Anterior (ghost text / auto preenchimento)
           Expanded(
             flex: 3,
             child: Center(
@@ -427,7 +436,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Input KG
           Expanded(
             flex: 3,
             child: SizedBox(
@@ -450,7 +458,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Input Reps
           Expanded(
             flex: 3,
             child: SizedBox(
@@ -473,7 +480,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Botão de Check
           IconButton(
             icon: Icon(
               set.isCompleted ? Icons.check_circle : Icons.check_circle_outline,

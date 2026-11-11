@@ -6,16 +6,50 @@ import '../services/workout_api_service.dart';
 
 class ActiveWorkoutProvider with ChangeNotifier {
   final WorkoutApiService _apiService;
-  final String currentUserId = 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d'; // Mock ID de usuário
+  final String currentUserId = 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d';
 
   WorkoutSessionModel? _activeSession;
+  final List<WorkoutSessionModel> _completedHistory = [];
   final Uuid _uuid = const Uuid();
 
   ActiveWorkoutProvider({WorkoutApiService? apiService}) 
-      : _apiService = apiService ?? WorkoutApiService();
+      : _apiService = apiService ?? WorkoutApiService() {
+    _loadSampleHistoryIfEmpty();
+  }
 
   WorkoutSessionModel? get activeSession => _activeSession;
   bool get hasActiveWorkout => _activeSession != null;
+  List<WorkoutSessionModel> get completedHistory => List.unmodifiable(_completedHistory);
+
+  void _loadSampleHistoryIfEmpty() {
+    if (_completedHistory.isEmpty) {
+      final now = DateTime.now();
+      // Histórico dos últimos dias para já popular o calendário
+      _completedHistory.add(
+        WorkoutSessionModel(
+          id: _uuid.v4(),
+          userId: currentUserId,
+          name: 'Pull A (Costas & Bíceps)',
+          startedAt: now.subtract(const Duration(days: 2, hours: 2)),
+          finishedAt: now.subtract(const Duration(days: 2, hours: 1)),
+          exercises: [
+            ExerciseLogModel(
+              id: _uuid.v4(),
+              exerciseId: 'ex-pull',
+              exerciseName: 'Puxada Frontal',
+              primaryMuscle: MuscleGroup.back,
+              order: 1,
+              sets: [
+                SetLogModel(id: _uuid.v4(), setOrder: 1, weight: 65, reps: 10, isCompleted: true),
+                SetLogModel(id: _uuid.v4(), setOrder: 2, weight: 65, reps: 10, isCompleted: true),
+                SetLogModel(id: _uuid.v4(), setOrder: 3, weight: 70, reps: 8, isCompleted: true),
+              ],
+            )
+          ],
+        ),
+      );
+    }
+  }
 
   void startWorkout(String name) {
     _activeSession = WorkoutSessionModel(
@@ -60,7 +94,6 @@ class ActiveWorkoutProvider with ChangeNotifier {
       }
     }
 
-    // Se não houver séries anteriores, inicializa com 1 série limpa
     if (exerciseLog.sets.isEmpty) {
       exerciseLog.sets.add(SetLogModel(
         id: _uuid.v4(),
@@ -106,12 +139,29 @@ class ActiveWorkoutProvider with ChangeNotifier {
     if (_activeSession == null) return false;
 
     _activeSession!.finishedAt = DateTime.now();
-    notifyListeners();
-
-    // Envio para o backend .NET 10 (com chave de idempotência clientSyncId)
-    final success = await _apiService.syncWorkout(_activeSession!);
+    // Armazena no histórico local persistente para visualização no Calendário
+    _completedHistory.insert(0, _activeSession!);
+    final finishedToSync = _activeSession!;
     _activeSession = null;
     notifyListeners();
-    return success;
+
+    // Sincroniza com a API em background
+    return await _apiService.syncWorkout(finishedToSync);
+  }
+
+  List<WorkoutSessionModel> getWorkoutsForDate(DateTime date) {
+    return _completedHistory.where((s) {
+      return s.startedAt.year == date.year &&
+             s.startedAt.month == date.month &&
+             s.startedAt.day == date.day;
+    }).toList();
+  }
+
+  bool hasWorkoutOnDate(DateTime date) {
+    return _completedHistory.any((s) {
+      return s.startedAt.year == date.year &&
+             s.startedAt.month == date.month &&
+             s.startedAt.day == date.day;
+    });
   }
 }
