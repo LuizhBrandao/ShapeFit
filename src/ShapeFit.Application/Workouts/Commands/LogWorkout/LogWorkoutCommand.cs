@@ -60,10 +60,14 @@ public class LogWorkoutCommandValidator : AbstractValidator<LogWorkoutCommand>
 public class LogWorkoutCommandHandler : IRequestHandler<LogWorkoutCommand, Guid>
 {
     private readonly IWorkoutSessionRepository _repository;
+    private readonly ICacheService _cacheService;
 
-    public LogWorkoutCommandHandler(IWorkoutSessionRepository repository)
+    public LogWorkoutCommandHandler(
+        IWorkoutSessionRepository repository,
+        ICacheService cacheService)
     {
         _repository = repository;
+        _cacheService = cacheService;
     }
 
     public async Task<Guid> Handle(LogWorkoutCommand request, CancellationToken cancellationToken)
@@ -130,6 +134,13 @@ public class LogWorkoutCommandHandler : IRequestHandler<LogWorkoutCommand, Guid>
 
         await _repository.AddAsync(session, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        // Invalidação reativa do Hot Cache de última performance no Redis para cada exercício executado
+        foreach (var exerciseCommand in request.Exercises)
+        {
+            var cacheKey = $"users:{request.UserId}:exercises:{exerciseCommand.ExerciseId}:last-performance";
+            await _cacheService.RemoveAsync(cacheKey, cancellationToken);
+        }
 
         return session.Id;
     }

@@ -4,8 +4,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using ShapeFit.Application.Common.Interfaces;
+using ShapeFit.Infrastructure.Caching;
 using ShapeFit.Infrastructure.Persistence;
 using ShapeFit.Infrastructure.Persistence.Repositories;
+using StackExchange.Redis;
 
 namespace ShapeFit.Infrastructure;
 
@@ -26,6 +28,16 @@ public static class DependencyInjection
 
         services.AddScoped<IWorkoutSessionRepository, WorkoutSessionRepository>();
         services.AddScoped<IWorkoutReadRepository, WorkoutReadRepository>();
+
+        // Hot Cache Resiliente via Redis e MessagePack
+        var redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
+        {
+            var options = ConfigurationOptions.Parse(redisConnectionString);
+            options.AbortOnConnectFail = false;
+            return ConnectionMultiplexer.Connect(options);
+        });
+        services.AddSingleton<ICacheService, RedisCacheService>();
 
         return services;
     }
