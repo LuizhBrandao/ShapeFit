@@ -19,7 +19,7 @@ public class RoutineTemplate : AggregateRoot
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
 
-    public IReadOnlyCollection<RoutineDay> Days => _days.OrderBy(d => d.Order).ToList().AsReadOnly();
+    public IReadOnlyCollection<RoutineDay> Days => _days.AsReadOnly();
     private readonly List<RoutineDay> _days = new();
 
     private RoutineTemplate() { }

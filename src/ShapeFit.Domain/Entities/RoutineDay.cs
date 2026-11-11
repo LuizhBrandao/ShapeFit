@@ -10,7 +10,7 @@ public class RoutineDay
     public int Order { get; private set; }
     public string? Description { get; private set; }
 
-    public IReadOnlyCollection<RoutineExercise> Exercises => _exercises.OrderBy(e => e.Order).ToList().AsReadOnly();
+    public IReadOnlyCollection<RoutineExercise> Exercises => _exercises.AsReadOnly();
     private readonly List<RoutineExercise> _exercises = new();
 
     private RoutineDay() { }

@@ -57,6 +57,157 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                     b.ToTable("exercises", (string)null);
                 });
 
+            modelBuilder.Entity("ShapeFit.Domain.Entities.Mesocycle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CompletedSessionsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CycleNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Goal")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RoutineTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetSessionsCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoutineTemplateId");
+
+                    b.HasIndex("UserId", "Status");
+
+                    b.ToTable("mesocycles", (string)null);
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("routine_template_id")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("routine_template_id");
+
+                    b.ToTable("routine_days", (string)null);
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineExercise", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomExerciseName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("ExerciseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RestIntervalSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetMuscle")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TargetRir")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TargetSets")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("routine_day_id")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("routine_day_id");
+
+                    b.ToTable("routine_exercises", (string)null);
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Division")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsAiGenerated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsActive");
+
+                    b.ToTable("routine_templates", (string)null);
+                });
+
             modelBuilder.Entity("ShapeFit.Domain.Entities.WorkoutExerciseLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -94,6 +245,10 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("MesocycleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mesocycle_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -102,6 +257,14 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("RoutineDayId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routine_day_id");
+
+                    b.Property<Guid?>("RoutineTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("routine_template_id");
 
                     b.Property<DateTime>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -114,6 +277,10 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                     b.HasIndex("ClientSyncId")
                         .IsUnique()
                         .HasFilter("\"client_sync_id\" IS NOT NULL");
+
+                    b.HasIndex("MesocycleId");
+
+                    b.HasIndex("RoutineTemplateId");
 
                     b.HasIndex("UserId", "StartedAt");
 
@@ -151,6 +318,46 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                     b.HasIndex("workout_exercise_log_id");
 
                     b.ToTable("workout_set_logs", (string)null);
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineDay", b =>
+                {
+                    b.HasOne("ShapeFit.Domain.Entities.RoutineTemplate", null)
+                        .WithMany("Days")
+                        .HasForeignKey("routine_template_id")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineExercise", b =>
+                {
+                    b.HasOne("ShapeFit.Domain.Entities.RoutineDay", null)
+                        .WithMany("Exercises")
+                        .HasForeignKey("routine_day_id")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.OwnsOne("ShapeFit.Domain.ValueObjects.RepRange", "RepRange", b1 =>
+                        {
+                            b1.Property<Guid>("RoutineExerciseId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("MaxReps")
+                                .HasColumnType("integer")
+                                .HasColumnName("rep_range_max");
+
+                            b1.Property<int>("MinReps")
+                                .HasColumnType("integer")
+                                .HasColumnName("rep_range_min");
+
+                            b1.HasKey("RoutineExerciseId");
+
+                            b1.ToTable("routine_exercises");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RoutineExerciseId");
+                        });
+
+                    b.Navigation("RepRange")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ShapeFit.Domain.Entities.WorkoutExerciseLog", b =>
@@ -194,6 +401,16 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Weight")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineDay", b =>
+                {
+                    b.Navigation("Exercises");
+                });
+
+            modelBuilder.Entity("ShapeFit.Domain.Entities.RoutineTemplate", b =>
+                {
+                    b.Navigation("Days");
                 });
 
             modelBuilder.Entity("ShapeFit.Domain.Entities.WorkoutExerciseLog", b =>
