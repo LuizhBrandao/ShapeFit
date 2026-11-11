@@ -1,3 +1,5 @@
+using ShapeFit.Domain.Common;
+
 namespace ShapeFit.Domain.Entities;
 
 /// <summary>
@@ -5,7 +7,7 @@ namespace ShapeFit.Domain.Entities;
 /// Gerencia a integridade da sessão, controle de tempo, idempotência para sincronização offline
 /// e vínculo rastreável com a Ficha de Treino (RoutineTemplate) e o Mesociclo em execução.
 /// </summary>
-public class WorkoutSession
+public class WorkoutSession : AggregateRoot
 {
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }

@@ -1,3 +1,4 @@
+using ShapeFit.Domain.Common;
 using ShapeFit.Domain.Enums;
 
 namespace ShapeFit.Domain.Entities;
@@ -6,7 +7,7 @@ namespace ShapeFit.Domain.Entities;
 /// Raiz do Agregado: Ficha de Treino / Molde Planejado (Routine Template).
 /// Modela a estrutura da rotina (ex: Push/Pull/Legs, AB, ABCD, etc.) com seus dias e exercícios planejados.
 /// </summary>
-public class RoutineTemplate
+public class RoutineTemplate : AggregateRoot
 {
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
