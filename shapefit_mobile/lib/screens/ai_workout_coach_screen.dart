@@ -61,8 +61,8 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
       division = WorkoutDivision.abcde;
     }
 
-    final routineName = 'Ficha IA - ${_selectedDivision.split(' ').first} (${_duration} min)';
-    final customDesc = 'Objetivo: $_primaryGoal • Nível: $_fitnessLevel • Duração: ${_duration} min';
+    final routineName = 'Ficha IA - ${_selectedDivision.split(' ').first} ($_duration min)';
+    final customDesc = 'Objetivo: $_primaryGoal • Nível: $_fitnessLevel • Duração: $_duration min';
 
     final plan = await _apiService.prescribeRoutine(
       userId: provider.currentUserId,
@@ -116,7 +116,6 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
         backgroundColor: Colors.blueAccent,
       ),
     );
-  }
   }
 
   @override
