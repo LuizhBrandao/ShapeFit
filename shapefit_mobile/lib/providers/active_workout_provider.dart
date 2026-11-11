@@ -12,6 +12,12 @@ class ActiveWorkoutProvider with ChangeNotifier {
   final List<WorkoutSessionModel> _completedHistory = [];
   final Uuid _uuid = const Uuid();
 
+  // Controle do Ciclo de 30 Treinos (Mesociclo RP)
+  static const int maxCycleWorkouts = 30;
+  int _currentCycleProgress = 1; // Inicia no treino 1
+  String _activeCycleRoutineName = 'Push / Pull / Legs Hipertrofia';
+  bool _cycleCompletedTrigger = false;
+
   ActiveWorkoutProvider({WorkoutApiService? apiService}) 
       : _apiService = apiService ?? WorkoutApiService() {
     _loadSampleHistoryIfEmpty();
@@ -21,10 +27,26 @@ class ActiveWorkoutProvider with ChangeNotifier {
   bool get hasActiveWorkout => _activeSession != null;
   List<WorkoutSessionModel> get completedHistory => List.unmodifiable(_completedHistory);
 
+  int get currentCycleProgress => _currentCycleProgress;
+  int get maxCycleTarget => maxCycleWorkouts;
+  String get activeCycleRoutineName => _activeCycleRoutineName;
+  bool get cycleCompletedTrigger => _cycleCompletedTrigger;
+
+  void acknowledgeCycleCompletion() {
+    _cycleCompletedTrigger = false;
+    notifyListeners();
+  }
+
+  void startNewCycle(String routineName) {
+    _currentCycleProgress = 1;
+    _activeCycleRoutineName = routineName;
+    _cycleCompletedTrigger = false;
+    notifyListeners();
+  }
+
   void _loadSampleHistoryIfEmpty() {
     if (_completedHistory.isEmpty) {
       final now = DateTime.now();
-      // Histórico dos últimos dias para já popular o calendário
       _completedHistory.add(
         WorkoutSessionModel(
           id: _uuid.v4(),
@@ -36,7 +58,7 @@ class ActiveWorkoutProvider with ChangeNotifier {
             ExerciseLogModel(
               id: _uuid.v4(),
               exerciseId: 'ex-pull',
-              exerciseName: 'Puxada Frontal',
+              exerciseName: 'Puxada Frontal na Polia',
               primaryMuscle: MuscleGroup.back,
               order: 1,
               sets: [
@@ -75,7 +97,6 @@ class ActiveWorkoutProvider with ChangeNotifier {
       sets: [],
     );
 
-    // Consulta assíncrona da performance anterior para auto-preenchimento
     final previousPerf = await _apiService.fetchLastPerformance(currentUserId, exerciseId);
     
     if (previousPerf != null && previousPerf['sets'] != null) {
@@ -139,13 +160,20 @@ class ActiveWorkoutProvider with ChangeNotifier {
     if (_activeSession == null) return false;
 
     _activeSession!.finishedAt = DateTime.now();
-    // Armazena no histórico local persistente para visualização no Calendário
     _completedHistory.insert(0, _activeSession!);
+
+    // Incrementa o contador do ciclo de 30 treinos
+    if (_currentCycleProgress < maxCycleWorkouts) {
+      _currentCycleProgress++;
+    } else {
+      // 30º treino concluído! Dispara o gatilho de reavaliação pela IA
+      _cycleCompletedTrigger = true;
+    }
+
     final finishedToSync = _activeSession!;
     _activeSession = null;
     notifyListeners();
 
-    // Sincroniza com a API em background
     return await _apiService.syncWorkout(finishedToSync);
   }
 

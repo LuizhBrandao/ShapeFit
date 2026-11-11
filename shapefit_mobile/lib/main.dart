@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'providers/active_workout_provider.dart';
 import 'screens/home_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Inicializa os dados de formatação de data para o português do Brasil (pt_BR)
+  await initializeDateFormatting('pt_BR', null);
+
   runApp(const ShapeFitApp());
 }
 

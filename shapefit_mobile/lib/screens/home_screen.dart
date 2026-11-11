@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/workout_enums.dart';
 import '../models/workout_models.dart';
 import '../providers/active_workout_provider.dart';
+import '../widgets/exercise_video_modal.dart';
 import 'ai_workout_coach_screen.dart';
 import 'workout_history_calendar_screen.dart';
 
@@ -20,6 +21,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final workoutProvider = context.watch<ActiveWorkoutProvider>();
     final hasActiveWorkout = workoutProvider.hasActiveWorkout;
+
+    // Se o 30º treino acabou de ser concluído, exibe o diálogo do ciclo
+    if (workoutProvider.cycleCompletedTrigger) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showCycleCompletedDialog(context, workoutProvider);
+      });
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
@@ -60,6 +68,55 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomSheet: hasActiveWorkout && _currentTabIndex != 0
           ? _buildActiveWorkoutMiniPlayer(context, workoutProvider)
           : null,
+    );
+  }
+
+  void _showCycleCompletedDialog(BuildContext context, ActiveWorkoutProvider provider) {
+    provider.acknowledgeCycleCompletion();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.emoji_events, color: Colors.amberAccent, size: 28),
+            SizedBox(width: 10),
+            Text('Ciclo de 30 Treinos Concluído!', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Parabéns! Você completou com consistência seu mesociclo de 30 treinos.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Pela ciência da hipertrofia (RP Periodization), seu corpo agora precisa de novos estímulos de volume e ângulos de tração.',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amberAccent,
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('NOVA REAVALIAÇÃO COM IA', style: TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              setState(() => _currentTabIndex = 2); // Leva para o Coach IA
+            },
+          )
+        ],
+      ),
     );
   }
 
@@ -107,6 +164,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStartWorkoutHub(BuildContext context, ActiveWorkoutProvider provider) {
+    final progressRatio = provider.currentCycleProgress / provider.maxCycleTarget;
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -128,7 +187,67 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 18),
+
+          // Card de Progresso do Ciclo de 30 Treinos
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.autorenew, color: Colors.blueAccent, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          provider.activeCycleRoutineName,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '${(progressRatio * 100).toInt()}%',
+                      style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progressRatio,
+                    minHeight: 10,
+                    backgroundColor: Colors.white10,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Treino ${provider.currentCycleProgress} de ${provider.maxCycleTarget} do Mesociclo',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    Text(
+                      'Faltam ${provider.maxCycleTarget - provider.currentCycleProgress} treinos',
+                      style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
 
           // Banner da IA Coach
           InkWell(
@@ -162,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text('Montar Ficha com a IA Coach', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                         SizedBox(height: 4),
-                        Text('Responda algumas perguntas e receba uma rotina científica baseada em RP / Mike Israetel.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text('Responda algumas perguntas e receba uma rotina científica válida por 30 treinos.', style: TextStyle(color: Colors.white70, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -208,9 +327,9 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               provider.startWorkout('Push A (Hipertrofia)');
               provider.addExercise('ex-1', 'Supino Inclinado com Halteres', MuscleGroup.chest);
-              provider.addExercise('ex-2', 'Crucifixo na Polia', MuscleGroup.chest);
-              provider.addExercise('ex-3', 'Elevação Lateral na Polia', MuscleGroup.shoulders);
-              provider.addExercise('ex-4', 'Tríceps Corda', MuscleGroup.triceps);
+              provider.addExercise('ex-2', 'Crucifixo na Polia (Crossover)', MuscleGroup.chest);
+              provider.addExercise('ex-3', 'Elevação Lateral', MuscleGroup.shoulders);
+              provider.addExercise('ex-4', 'Tríceps Corda na Polia', MuscleGroup.triceps);
             },
           ),
           _buildRoutineCard(
@@ -229,10 +348,10 @@ class _HomeScreenState extends State<HomeScreen> {
             muscles: 'Quadríceps • Posteriores • Panturrilha (4 exercícios)',
             onTap: () {
               provider.startWorkout('Legs A (Carga Axial)');
-              provider.addExercise('ex-9', 'Agachamento Hack', MuscleGroup.quadriceps);
+              provider.addExercise('ex-9', 'Agachamento Hack / Livre', MuscleGroup.quadriceps);
               provider.addExercise('ex-10', 'Mesa Flexora', MuscleGroup.hamstrings);
               provider.addExercise('ex-11', 'Cadeira Extensora', MuscleGroup.quadriceps);
-              provider.addExercise('ex-12', 'Panturrilha em Pé', MuscleGroup.calves);
+              provider.addExercise('ex-12', 'Panturrilha em Pé na Máquina', MuscleGroup.calves);
             },
           ),
         ],
@@ -354,7 +473,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: const TextStyle(color: Colors.blueAccent, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const Icon(Icons.more_horiz, color: Colors.grey),
+                // Botão de Vídeo / Instruções Biomecânicas
+                IconButton(
+                  icon: const Icon(Icons.play_circle_fill, color: Colors.amberAccent, size: 24),
+                  tooltip: 'Ver Vídeo & Instruções de Execução',
+                  onPressed: () => ExerciseVideoModal.show(context, exercise.exerciseName),
+                ),
               ],
             ),
             const SizedBox(height: 12),
