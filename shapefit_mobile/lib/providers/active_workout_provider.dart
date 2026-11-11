@@ -4,6 +4,24 @@ import '../models/workout_enums.dart';
 import '../models/workout_models.dart';
 import '../services/workout_api_service.dart';
 
+class RoutineCycleProgress {
+  final String routineKey; // ex: 'push', 'pull', 'legs'
+  final String routineName;
+  int completedCount;
+  final int targetCount;
+
+  RoutineCycleProgress({
+    required this.routineKey,
+    required this.routineName,
+    this.completedCount = 0,
+    this.targetCount = 30,
+  });
+
+  double get progressRatio => (completedCount / targetCount).clamp(0.0, 1.0);
+  int get remaining => (targetCount - completedCount).clamp(0, targetCount);
+  bool get isCompleted => completedCount >= targetCount;
+}
+
 class ActiveWorkoutProvider with ChangeNotifier {
   final WorkoutApiService _apiService;
   final String currentUserId = 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d';
@@ -12,11 +30,30 @@ class ActiveWorkoutProvider with ChangeNotifier {
   final List<WorkoutSessionModel> _completedHistory = [];
   final Uuid _uuid = const Uuid();
 
-  // Controle do Ciclo de 30 Treinos (Mesociclo RP)
-  static const int maxCycleWorkouts = 30;
-  int _currentCycleProgress = 1; // Inicia no treino 1
-  String _activeCycleRoutineName = 'Push / Pull / Legs Hipertrofia';
+  // 30 treinos independentes para cada rotina (Push: 30, Pull: 30, Legs: 30)
+  final Map<String, RoutineCycleProgress> _routineCycles = {
+    'push': RoutineCycleProgress(
+      routineKey: 'push',
+      routineName: 'Push (Peito, Ombro, Tríceps)',
+      completedCount: 1,
+      targetCount: 30,
+    ),
+    'pull': RoutineCycleProgress(
+      routineKey: 'pull',
+      routineName: 'Pull (Costas, Deltoide Post., Bíceps)',
+      completedCount: 1,
+      targetCount: 30,
+    ),
+    'legs': RoutineCycleProgress(
+      routineKey: 'legs',
+      routineName: 'Legs (Quadríceps & Isquiotibiais)',
+      completedCount: 0,
+      targetCount: 30,
+    ),
+  };
+
   bool _cycleCompletedTrigger = false;
+  String _completedRoutineName = '';
 
   ActiveWorkoutProvider({WorkoutApiService? apiService}) 
       : _apiService = apiService ?? WorkoutApiService() {
@@ -27,21 +64,22 @@ class ActiveWorkoutProvider with ChangeNotifier {
   bool get hasActiveWorkout => _activeSession != null;
   List<WorkoutSessionModel> get completedHistory => List.unmodifiable(_completedHistory);
 
-  int get currentCycleProgress => _currentCycleProgress;
-  int get maxCycleTarget => maxCycleWorkouts;
-  String get activeCycleRoutineName => _activeCycleRoutineName;
+  List<RoutineCycleProgress> get routineCycles => _routineCycles.values.toList();
   bool get cycleCompletedTrigger => _cycleCompletedTrigger;
+  String get completedRoutineName => _completedRoutineName;
 
   void acknowledgeCycleCompletion() {
     _cycleCompletedTrigger = false;
+    _completedRoutineName = '';
     notifyListeners();
   }
 
-  void startNewCycle(String routineName) {
-    _currentCycleProgress = 1;
-    _activeCycleRoutineName = routineName;
-    _cycleCompletedTrigger = false;
-    notifyListeners();
+  RoutineCycleProgress? getProgressForRoutine(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('push')) return _routineCycles['push'];
+    if (lower.contains('pull')) return _routineCycles['pull'];
+    if (lower.contains('leg')) return _routineCycles['legs'];
+    return null;
   }
 
   void _loadSampleHistoryIfEmpty() {
@@ -162,12 +200,18 @@ class ActiveWorkoutProvider with ChangeNotifier {
     _activeSession!.finishedAt = DateTime.now();
     _completedHistory.insert(0, _activeSession!);
 
-    // Incrementa o contador do ciclo de 30 treinos
-    if (_currentCycleProgress < maxCycleWorkouts) {
-      _currentCycleProgress++;
-    } else {
-      // 30º treino concluído! Dispara o gatilho de reavaliação pela IA
-      _cycleCompletedTrigger = true;
+    // Incrementa especificamente a rotina realizada (ex: Push, Pull ou Legs)
+    final routineProgress = getProgressForRoutine(_activeSession!.name);
+    if (routineProgress != null) {
+      if (routineProgress.completedCount < routineProgress.targetCount) {
+        routineProgress.completedCount++;
+      }
+      
+      // Se essa rotina específica completou seus 30 treinos
+      if (routineProgress.completedCount >= routineProgress.targetCount) {
+        _cycleCompletedTrigger = true;
+        _completedRoutineName = routineProgress.routineName;
+      }
     }
 
     final finishedToSync = _activeSession!;
