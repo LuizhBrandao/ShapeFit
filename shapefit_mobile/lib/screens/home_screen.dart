@@ -5,6 +5,7 @@ import '../models/workout_models.dart';
 import '../providers/active_workout_provider.dart';
 import '../widgets/exercise_video_modal.dart';
 import 'ai_workout_coach_screen.dart';
+import 'create_custom_routine_screen.dart';
 import 'workout_history_calendar_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -193,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Painel de Mesociclo: 30 Treinos Independentes por Rotina (Push, Pull, Legs)
+          // Painel de Mesociclo: 30 Treinos Independentes por Ficha
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -221,11 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                ...provider.routineCycles.map((cycle) {
-                  Color barColor = Colors.blueAccent;
-                  if (cycle.routineKey == 'pull') barColor = Colors.tealAccent;
-                  if (cycle.routineKey == 'legs') barColor = Colors.purpleAccent;
-
+                ...provider.userRoutines.map((routine) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Column(
@@ -234,13 +231,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              cycle.routineName,
-                              style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                            Expanded(
+                              child: Text(
+                                routine.name,
+                                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                              ),
                             ),
                             Text(
-                              '${cycle.completedCount} / ${cycle.targetCount}',
-                              style: TextStyle(color: barColor, fontWeight: FontWeight.bold, fontSize: 13),
+                              '${routine.completedCount} / ${routine.targetCount}',
+                              style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ],
                         ),
@@ -248,10 +247,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
-                            value: cycle.progressRatio,
+                            value: routine.progressRatio,
                             minHeight: 8,
                             backgroundColor: Colors.white10,
-                            valueColor: AlwaysStoppedAnimation<Color>(barColor),
+                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                           ),
                         ),
                       ],
@@ -264,46 +263,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 18),
 
-          // Banner da IA Coach
-          InkWell(
-            onTap: () => setState(() => _currentTabIndex = 2),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.amber.shade900.withValues(alpha: 0.6), const Color(0xFF1E1E1E)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.5)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
+          // Botões de Ação Rápida: Nova Ficha e IA Coach
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateCustomRoutineScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.amberAccent.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4)),
                     ),
-                    child: const Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 28),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
+                    child: const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Montar Ficha com a IA Coach', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        SizedBox(height: 4),
-                        Text('Responda algumas perguntas e receba uma rotina científica válida por 30 treinos de cada dia.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        Icon(Icons.add_circle, color: Colors.greenAccent, size: 26),
+                        SizedBox(height: 8),
+                        Text('Criar Minha Ficha', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        SizedBox(height: 2),
+                        Text('Personalize seus exercícios', style: TextStyle(color: Colors.white54, fontSize: 11)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: Colors.white54),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: InkWell(
+                  onTap: () => setState(() => _currentTabIndex = 2),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.amberAccent.withValues(alpha: 0.4)),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 26),
+                        SizedBox(height: 8),
+                        Text('Ficha com IA Coach', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        SizedBox(height: 2),
+                        Text('Divisão científica em 30 treinos', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 24),
@@ -312,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 50,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
@@ -333,103 +350,67 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           const SizedBox(height: 28),
-          const Text('SUAS ROTINAS PRONTAS (HEVY / BOOSTCAMP)', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
-          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('SUAS FICHAS E ROTINAS', style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreateCustomRoutineScreen()),
+                  );
+                },
+                icon: const Icon(Icons.add, size: 16, color: Colors.greenAccent),
+                label: const Text('Nova', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
 
-          _buildRoutineCard(
-            title: 'Push A (Peitoral, Ombros & Tríceps)',
-            muscles: 'Peito • Deltoide • Tríceps (4 exercícios)',
-            routineKey: 'push',
-            provider: provider,
-            onTap: () {
-              provider.startWorkout('Push A (Hipertrofia)');
-              provider.addExercise('ex-1', 'Supino Inclinado com Halteres', MuscleGroup.chest);
-              provider.addExercise('ex-2', 'Crucifixo na Polia (Crossover)', MuscleGroup.chest);
-              provider.addExercise('ex-3', 'Elevação Lateral', MuscleGroup.shoulders);
-              provider.addExercise('ex-4', 'Tríceps Corda na Polia', MuscleGroup.triceps);
-            },
-          ),
-          _buildRoutineCard(
-            title: 'Pull A (Costas, Deltoide Posterior & Bíceps)',
-            muscles: 'Dorsal • Posterior de Ombro • Bíceps (4 exercícios)',
-            routineKey: 'pull',
-            provider: provider,
-            onTap: () {
-              provider.startWorkout('Pull A (V-Taper)');
-              provider.addExercise('ex-5', 'Puxada Frontal na Polia', MuscleGroup.back);
-              provider.addExercise('ex-6', 'Remada Curvada com Barra', MuscleGroup.back);
-              provider.addExercise('ex-7', 'Face Pull', MuscleGroup.shoulders);
-              provider.addExercise('ex-8', 'Rosca Direta Barra W', MuscleGroup.biceps);
-            },
-          ),
-          _buildRoutineCard(
-            title: 'Legs A (Quadríceps & Isquiotibiais)',
-            muscles: 'Quadríceps • Posteriores • Panturrilha (4 exercícios)',
-            routineKey: 'legs',
-            provider: provider,
-            onTap: () {
-              provider.startWorkout('Legs A (Carga Axial)');
-              provider.addExercise('ex-9', 'Agachamento Hack / Livre', MuscleGroup.quadriceps);
-              provider.addExercise('ex-10', 'Mesa Flexora', MuscleGroup.hamstrings);
-              provider.addExercise('ex-11', 'Cadeira Extensora', MuscleGroup.quadriceps);
-              provider.addExercise('ex-12', 'Panturrilha em Pé na Máquina', MuscleGroup.calves);
-            },
-          ),
+          ...provider.userRoutines.map((routine) {
+            return Card(
+              color: const Color(0xFF1E1E1E),
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(routine.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${routine.completedCount}/30',
+                        style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(routine.description, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                ),
+                trailing: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent.withValues(alpha: 0.15),
+                    foregroundColor: Colors.blueAccent,
+                    elevation: 0,
+                  ),
+                  onPressed: () => provider.startWorkoutFromRoutine(routine),
+                  child: const Text('INICIAR'),
+                ),
+              ),
+            );
+          }),
         ],
-      ),
-    );
-  }
-
-  Widget _buildRoutineCard({
-    required String title,
-    required String muscles,
-    required String routineKey,
-    required ActiveWorkoutProvider provider,
-    required VoidCallback onTap,
-  }) {
-    final cycle = provider.routineCycles.firstWhere(
-      (c) => c.routineKey == routineKey,
-      orElse: () => RoutineCycleProgress(routineKey: routineKey, routineName: title),
-    );
-
-    return Card(
-      color: const Color(0xFF1E1E1E),
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '${cycle.completedCount}/30',
-                style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(muscles, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-        ),
-        trailing: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueAccent.withValues(alpha: 0.15),
-            foregroundColor: Colors.blueAccent,
-            elevation: 0,
-          ),
-          onPressed: onTap,
-          child: const Text('INICIAR'),
-        ),
       ),
     );
   }

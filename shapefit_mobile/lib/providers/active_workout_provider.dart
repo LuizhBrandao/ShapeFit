@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import '../models/custom_routine_model.dart';
 import '../models/workout_enums.dart';
 import '../models/workout_models.dart';
 import '../services/workout_api_service.dart';
 
 class RoutineCycleProgress {
-  final String routineKey; // ex: 'push', 'pull', 'legs'
+  final String routineKey;
   final String routineName;
   int completedCount;
   final int targetCount;
@@ -30,27 +31,48 @@ class ActiveWorkoutProvider with ChangeNotifier {
   final List<WorkoutSessionModel> _completedHistory = [];
   final Uuid _uuid = const Uuid();
 
-  // 30 treinos independentes para cada rotina (Push: 30, Pull: 30, Legs: 30)
-  final Map<String, RoutineCycleProgress> _routineCycles = {
-    'push': RoutineCycleProgress(
-      routineKey: 'push',
-      routineName: 'Push (Peito, Ombro, Tríceps)',
+  // Fichas padrão e criadas pelo usuário
+  final List<CustomRoutineTemplate> _userRoutines = [
+    CustomRoutineTemplate(
+      id: 'default-push',
+      name: 'Push A (Peitoral, Ombros & Tríceps)',
+      description: 'Peito • Deltoide • Tríceps',
       completedCount: 1,
       targetCount: 30,
+      exercises: [
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-1', name: 'Supino Inclinado com Halteres', targetMuscle: MuscleGroup.chest),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-2', name: 'Crucifixo na Polia (Crossover)', targetMuscle: MuscleGroup.chest),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-3', name: 'Elevação Lateral', targetMuscle: MuscleGroup.shoulders),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-4', name: 'Tríceps Corda na Polia', targetMuscle: MuscleGroup.triceps),
+      ],
     ),
-    'pull': RoutineCycleProgress(
-      routineKey: 'pull',
-      routineName: 'Pull (Costas, Deltoide Post., Bíceps)',
+    CustomRoutineTemplate(
+      id: 'default-pull',
+      name: 'Pull A (Costas, Deltoide Posterior & Bíceps)',
+      description: 'Dorsal • Posterior de Ombro • Bíceps',
       completedCount: 1,
       targetCount: 30,
+      exercises: [
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-5', name: 'Puxada Frontal na Polia', targetMuscle: MuscleGroup.back),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-6', name: 'Remada Baixa com Triângulo', targetMuscle: MuscleGroup.back),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-7', name: 'Face Pull na Polia', targetMuscle: MuscleGroup.shoulders),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-8', name: 'Rosca Direta Barra W', targetMuscle: MuscleGroup.biceps),
+      ],
     ),
-    'legs': RoutineCycleProgress(
-      routineKey: 'legs',
-      routineName: 'Legs (Quadríceps & Isquiotibiais)',
+    CustomRoutineTemplate(
+      id: 'default-legs',
+      name: 'Legs A (Quadríceps & Isquiotibiais)',
+      description: 'Quadríceps • Posteriores • Panturrilha',
       completedCount: 0,
       targetCount: 30,
+      exercises: [
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-9', name: 'Agachamento Hack / Livre', targetMuscle: MuscleGroup.quadriceps),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-10', name: 'Mesa Flexora', targetMuscle: MuscleGroup.hamstrings),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-11', name: 'Cadeira Extensora', targetMuscle: MuscleGroup.quadriceps),
+        CustomRoutineExerciseTemplate(exerciseId: 'ex-12', name: 'Panturrilha Sentado (Gêmeos)', targetMuscle: MuscleGroup.calves),
+      ],
     ),
-  };
+  ];
 
   bool _cycleCompletedTrigger = false;
   String _completedRoutineName = '';
@@ -63,23 +85,27 @@ class ActiveWorkoutProvider with ChangeNotifier {
   WorkoutSessionModel? get activeSession => _activeSession;
   bool get hasActiveWorkout => _activeSession != null;
   List<WorkoutSessionModel> get completedHistory => List.unmodifiable(_completedHistory);
+  List<CustomRoutineTemplate> get userRoutines => List.unmodifiable(_userRoutines);
 
-  List<RoutineCycleProgress> get routineCycles => _routineCycles.values.toList();
   bool get cycleCompletedTrigger => _cycleCompletedTrigger;
   String get completedRoutineName => _completedRoutineName;
+
+  void addCustomRoutine(CustomRoutineTemplate routine) {
+    _userRoutines.add(routine);
+    notifyListeners();
+  }
+
+  void startWorkoutFromRoutine(CustomRoutineTemplate routine) {
+    startWorkout(routine.name);
+    for (var ex in routine.exercises) {
+      addExercise(ex.exerciseId, ex.name, ex.targetMuscle);
+    }
+  }
 
   void acknowledgeCycleCompletion() {
     _cycleCompletedTrigger = false;
     _completedRoutineName = '';
     notifyListeners();
-  }
-
-  RoutineCycleProgress? getProgressForRoutine(String name) {
-    final lower = name.toLowerCase();
-    if (lower.contains('push')) return _routineCycles['push'];
-    if (lower.contains('pull')) return _routineCycles['pull'];
-    if (lower.contains('leg')) return _routineCycles['legs'];
-    return null;
   }
 
   void _loadSampleHistoryIfEmpty() {
@@ -200,18 +226,20 @@ class ActiveWorkoutProvider with ChangeNotifier {
     _activeSession!.finishedAt = DateTime.now();
     _completedHistory.insert(0, _activeSession!);
 
-    // Incrementa especificamente a rotina realizada (ex: Push, Pull ou Legs)
-    final routineProgress = getProgressForRoutine(_activeSession!.name);
-    if (routineProgress != null) {
-      if (routineProgress.completedCount < routineProgress.targetCount) {
-        routineProgress.completedCount++;
-      }
-      
-      // Se essa rotina específica completou seus 30 treinos
-      if (routineProgress.completedCount >= routineProgress.targetCount) {
-        _cycleCompletedTrigger = true;
-        _completedRoutineName = routineProgress.routineName;
-      }
+    // Busca a ficha correspondente na lista do usuário para somar +1 treino
+    final matchedRoutine = _userRoutines.firstWhere(
+      (r) => _activeSession!.name.toLowerCase().contains(r.name.toLowerCase()) ||
+             r.name.toLowerCase().contains(_activeSession!.name.toLowerCase()),
+      orElse: () => _userRoutines.first,
+    );
+
+    if (matchedRoutine.completedCount < matchedRoutine.targetCount) {
+      matchedRoutine.completedCount++;
+    }
+
+    if (matchedRoutine.completedCount >= matchedRoutine.targetCount) {
+      _cycleCompletedTrigger = true;
+      _completedRoutineName = matchedRoutine.name;
     }
 
     final finishedToSync = _activeSession!;
