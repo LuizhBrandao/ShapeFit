@@ -1,6 +1,8 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using ShapeFit.Application.Common.Interfaces;
 using ShapeFit.Infrastructure.Persistence;
 using ShapeFit.Infrastructure.Persistence.Repositories;
@@ -14,8 +16,13 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada.");
 
+        // Centralização do pool de conexões com NpgsqlDataSource
+        var dataSource = NpgsqlDataSource.Create(connectionString);
+        services.AddSingleton(dataSource);
+        services.AddScoped<IDbConnection>(sp => sp.GetRequiredService<NpgsqlDataSource>().CreateConnection());
+
         services.AddDbContext<ShapeFitDbContext>(options =>
-            options.UseNpgsql(connectionString, b => b.MigrationsAssembly(typeof(ShapeFitDbContext).Assembly.FullName)));
+            options.UseNpgsql(dataSource, b => b.MigrationsAssembly(typeof(ShapeFitDbContext).Assembly.FullName)));
 
         services.AddScoped<IWorkoutSessionRepository, WorkoutSessionRepository>();
         services.AddScoped<IWorkoutReadRepository, WorkoutReadRepository>();

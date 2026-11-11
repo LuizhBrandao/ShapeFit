@@ -38,7 +38,7 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                     StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     FinishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
-                    ClientSyncId = table.Column<Guid>(type: "uuid", nullable: true)
+                    client_sync_id = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -98,11 +98,11 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                 column: "workout_session_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_workout_sessions_ClientSyncId",
+                name: "IX_workout_sessions_client_sync_id",
                 table: "workout_sessions",
-                column: "ClientSyncId",
+                column: "client_sync_id",
                 unique: true,
-                filter: "client_sync_id IS NOT NULL");
+                filter: "\"client_sync_id\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_workout_sessions_UserId_StartedAt",

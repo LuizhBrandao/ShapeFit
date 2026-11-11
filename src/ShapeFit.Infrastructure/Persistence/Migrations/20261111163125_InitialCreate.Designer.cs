@@ -12,7 +12,7 @@ using ShapeFit.Infrastructure.Persistence;
 namespace ShapeFit.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ShapeFitDbContext))]
-    [Migration("20261111124527_InitialCreate")]
+    [Migration("20261111163125_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -91,7 +91,8 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ClientSyncId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_sync_id");
 
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("timestamp with time zone");
@@ -115,7 +116,7 @@ namespace ShapeFit.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ClientSyncId")
                         .IsUnique()
-                        .HasFilter("client_sync_id IS NOT NULL");
+                        .HasFilter("\"client_sync_id\" IS NOT NULL");
 
                     b.HasIndex("UserId", "StartedAt");
 

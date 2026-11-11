@@ -21,10 +21,10 @@ public class WorkoutSessionConfiguration : IEntityTypeConfiguration<WorkoutSessi
         builder.Property(x => x.StartedAt).IsRequired();
         builder.Property(x => x.FinishedAt);
         builder.Property(x => x.Notes).HasMaxLength(1000);
-        builder.Property(x => x.ClientSyncId);
+        builder.Property(x => x.ClientSyncId).HasColumnName("client_sync_id");
 
         builder.HasIndex(x => new { x.UserId, x.StartedAt });
-        builder.HasIndex(x => x.ClientSyncId).IsUnique().HasFilter("client_sync_id IS NOT NULL");
+        builder.HasIndex(x => x.ClientSyncId).IsUnique().HasFilter("\"client_sync_id\" IS NOT NULL");
 
         builder.HasMany(x => x.Exercises)
             .WithOne()

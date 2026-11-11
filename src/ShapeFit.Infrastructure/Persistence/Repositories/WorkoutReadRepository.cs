@@ -1,7 +1,5 @@
 using System.Data;
 using Dapper;
-using Microsoft.Extensions.Configuration;
-using Npgsql;
 using ShapeFit.Application.Common.Interfaces;
 using ShapeFit.Application.Workouts.DTOs;
 using ShapeFit.Domain.Enums;
@@ -10,20 +8,32 @@ namespace ShapeFit.Infrastructure.Persistence.Repositories;
 
 public class WorkoutReadRepository : IWorkoutReadRepository
 {
-    private readonly string _connectionString;
+    private readonly IDbConnection _dbConnection;
 
-    public WorkoutReadRepository(IConfiguration configuration)
+    public WorkoutReadRepository(IDbConnection dbConnection)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada.");
+        _dbConnection = dbConnection;
     }
 
-    private IDbConnection CreateConnection() => new NpgsqlConnection(_connectionString);
+    private sealed record RawLastPerformanceRow(
+        Guid ExerciseId,
+        string ExerciseName,
+        DateTime PerformedAt,
+        int SetOrder,
+        int Type,
+        decimal Weight,
+        string Unit,
+        int Repetitions,
+        int? RepsInReserve
+    );
+
+    private sealed record RawWeeklyMuscleVolumeRow(
+        int Muscle,
+        long EffectiveSetsCount
+    );
 
     public async Task<LastExercisePerformanceDto?> GetLastPerformanceAsync(Guid userId, Guid exerciseId, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
-
         // Query Dapper com CTE (Common Table Expression): 
         // 1. Acha a última sessão de treino em que o usuário realizou o exercício em questão.
         // 2. Extrai todas as séries realizadas naquela sessão específica para pré-preenchimento instantâneo.
@@ -58,34 +68,37 @@ public class WorkoutReadRepository : IWorkoutReadRepository
             ORDER BY wsl.set_order ASC;
         """;
 
-        var rows = await connection.QueryAsync<dynamic>(sql, new { UserId = userId, ExerciseId = exerciseId });
-        var rowsList = rows.ToList();
+        var command = new CommandDefinition(
+            sql, 
+            new { UserId = userId, ExerciseId = exerciseId }, 
+            cancellationToken: cancellationToken
+        );
 
-        if (!rowsList.Any())
+        var rows = (await _dbConnection.QueryAsync<RawLastPerformanceRow>(command)).ToList();
+
+        if (rows.Count == 0)
             return null;
 
-        var first = rowsList.First();
-        var sets = rowsList.Select(r => new PreviousSetDto(
-            (int)r.setorder,
-            (SetType)(int)r.type,
-            (decimal)r.weight,
-            (string)r.unit,
-            (int)r.repetitions,
-            r.repsinreserve != null ? (int?)r.repsinreserve : null
+        var first = rows[0];
+        var sets = rows.Select(r => new PreviousSetDto(
+            r.SetOrder,
+            (SetType)r.Type,
+            r.Weight,
+            r.Unit,
+            r.Repetitions,
+            r.RepsInReserve
         )).ToList();
 
         return new LastExercisePerformanceDto(
-            (Guid)first.exerciseid,
-            (string)first.exercisename,
-            (DateTime)first.performedat,
+            first.ExerciseId,
+            first.ExerciseName,
+            first.PerformedAt,
             sets
         );
     }
 
     public async Task<IEnumerable<MuscleWeeklyVolumeDto>> GetWeeklyMuscleVolumeAsync(Guid userId, DateTime referenceDate, CancellationToken cancellationToken = default)
     {
-        using var connection = CreateConnection();
-
         var startDate = referenceDate.Date.AddDays(-7);
 
         // Agregação semanal de séries de trabalho por grupo muscular primário
@@ -106,15 +119,21 @@ public class WorkoutReadRepository : IWorkoutReadRepository
             GROUP BY e.primary_muscle;
         """;
 
-        var results = await connection.QueryAsync<dynamic>(sql, new { UserId = userId, StartDate = startDate, ReferenceDate = referenceDate });
+        var command = new CommandDefinition(
+            sql, 
+            new { UserId = userId, StartDate = startDate, ReferenceDate = referenceDate }, 
+            cancellationToken: cancellationToken
+        );
+
+        var results = await _dbConnection.QueryAsync<RawWeeklyMuscleVolumeRow>(command);
 
         return results.Select(r =>
         {
-            var muscle = (MuscleGroup)(int)r.muscle;
+            var muscle = (MuscleGroup)r.Muscle;
             return new MuscleWeeklyVolumeDto(
                 muscle,
                 muscle.ToString(),
-                (int)r.effectivesetscount
+                (int)r.EffectiveSetsCount
             );
         });
     }

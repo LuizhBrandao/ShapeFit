@@ -1,6 +1,44 @@
 @ShapeFit.Api_HostAddress = http://localhost:5198
+@UserId = 3fa85f64-5717-4562-b3fc-2c963f66afa6
+@ExerciseId = 4ba85f64-5717-4562-b3fc-2c963f66afa7
 
-GET {{ShapeFit.Api_HostAddress}}/weatherforecast/
+### Registrar Treino (Com X-Correlation-ID e Idempotência)
+POST {{ShapeFit.Api_HostAddress}}/api/workouts
+Content-Type: application/json
+X-Correlation-ID: 7a3b4f5c-8d9e-4f1a-b2c3-d4e5f6a7b8c9
+
+{
+  "userId": "{{UserId}}",
+  "name": "Treino A - Peito e Tríceps",
+  "startedAt": "2026-11-11T14:00:00Z",
+  "finishedAt": "2026-11-11T15:00:00Z",
+  "clientSyncId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+  "notes": "Treino com progressão de carga",
+  "exercises": [
+    {
+      "exerciseId": "{{ExerciseId}}",
+      "order": 1,
+      "notes": "Supino reto com barra",
+      "sets": [
+        {
+          "setOrder": 1,
+          "type": 1,
+          "weight": 80.0,
+          "unit": "kg",
+          "repetitions": 10,
+          "repsInReserve": 2,
+          "isCompleted": true
+        }
+      ]
+    }
+  ]
+}
+
+###
+
+### Consultar Última Performance do Exercício (Pré-preenchimento rápido)
+GET {{ShapeFit.Api_HostAddress}}/api/workouts/users/{{UserId}}/exercises/{{ExerciseId}}/last-performance
 Accept: application/json
+X-Correlation-ID: 8b4c5d6e-9f0a-5b2c-c3d4-e5f6a7b8c9d0
 
 ###
