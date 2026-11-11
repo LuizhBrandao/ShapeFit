@@ -1,0 +1,34 @@
+services:
+  shapefit-postgres-staging:
+    image: postgres:16-alpine
+    container_name: shapefit-postgres-staging
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shapefit_staging_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shapefit_staging_password}
+      POSTGRES_DB: ${POSTGRES_DB:-shapefit_staging}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    networks:
+      - shapefit-staging-net
+
+  shapefit-redis-staging:
+    image: redis:7-alpine
+    container_name: shapefit-redis-staging
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_staging_data:/data
+    networks:
+      - shapefit-staging-net
+
+volumes:
+  postgres_staging_data:
+  redis_staging_data:
+
+networks:
+  shapefit-staging-net:
+    driver: bridge

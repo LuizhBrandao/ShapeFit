@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_config.dart';
 import '../models/workout_enums.dart';
 import '../models/workout_models.dart';
 import '../providers/active_workout_provider.dart';
@@ -178,11 +179,38 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ShapeFit Pro', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w900, fontSize: 24)),
-                  Text('Alta Performance & Hipertrofia Científica', style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  Row(
+                    children: [
+                      const Text('ShapeFit Pro', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.w900, fontSize: 24)),
+                      if (AppConfig.current.environmentBadge != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppConfig.current.isDevelopment ? Colors.amber.withValues(alpha: 0.2) : Colors.cyan.withValues(alpha: 0.2),
+                            border: Border.all(
+                              color: AppConfig.current.isDevelopment ? Colors.amber : Colors.cyan,
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            AppConfig.current.environmentBadge!,
+                            style: TextStyle(
+                              color: AppConfig.current.isDevelopment ? Colors.amber : Colors.cyan,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const Text('Alta Performance & Hipertrofia Científica', style: TextStyle(color: Colors.white54, fontSize: 13)),
                 ],
               ),
               IconButton(

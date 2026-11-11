@@ -1,0 +1,36 @@
+name: ShapeFit CD - Staging Environment
+
+on:
+  push:
+    branches: [ staging ]
+
+jobs:
+  build-staging:
+    name: Build & Prepare Staging Release
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compilar API para Staging
+        run: |
+          dotnet publish src/ShapeFit.Api/ShapeFit.Api.csproj -c Release -o ./publish-api-staging
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build Web para Staging
+        run: |
+          cd shapefit_mobile
+          flutter pub get
+          flutter build web --dart-define=ENV=stage --release -o build/web-staging

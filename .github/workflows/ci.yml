@@ -1,0 +1,59 @@
+name: ShapeFit CI Pipeline
+
+on:
+  push:
+    branches: [ develop, staging, main ]
+  pull_request:
+    branches: [ develop, staging, main ]
+
+jobs:
+  backend-test:
+    name: .NET Backend - Testes e Validação
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restaurar Dependências .NET
+        run: dotnet restore ShapeFit.slnx
+
+      - name: Compilar Solução
+        run: dotnet build ShapeFit.slnx --configuration Release --no-restore
+
+      - name: Executar Testes Unitários e de Integração
+        run: dotnet test ShapeFit.slnx --configuration Release --no-build --verbosity normal
+
+  frontend-test:
+    name: Flutter Frontend - Análise e Testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Instalar Dependências Flutter
+        run: |
+          cd shapefit_mobile
+          flutter pub get
+
+      - name: Análise Estática Flutter
+        run: |
+          cd shapefit_mobile
+          flutter analyze --no-fatal-infos
+
+      - name: Testes Flutter
+        run: |
+          cd shapefit_mobile
+          flutter test

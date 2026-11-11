@@ -10,12 +10,20 @@ obj/
 
 ## Environment / Secrets
 .env
-appsettings.Development.json
+.env.*
+!.env.example
 *.local.json
+appsettings.*.local.json
 
 ## Docker
 postgres_data/
 redis_data/
+postgres_dev_data/
+postgres_staging_data/
+postgres_prod_data/
+redis_dev_data/
+redis_staging_data/
+redis_prod_data/
 
 ## OS generated
 .DS_Store

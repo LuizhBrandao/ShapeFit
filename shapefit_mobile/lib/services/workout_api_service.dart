@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 import '../models/routine_dto_models.dart';
 import '../models/workout_enums.dart';
 import '../models/workout_models.dart';
 
 class WorkoutApiService {
-  // Para Android Emulator use: 10.0.2.2:5000 / para dispositivo físico, o IP da máquina local ou DNS da OCI
   final String baseUrl;
 
-  WorkoutApiService({this.baseUrl = 'http://10.0.2.2:5000'});
+  WorkoutApiService({String? baseUrl})
+      : baseUrl = baseUrl ?? AppConfig.current.apiBaseUrl;
 
   /// Busca as séries e cargas do último treino desse exercício para auto-preenchimento
   Future<Map<String, dynamic>?> fetchLastPerformance(String userId, String exerciseId) async {

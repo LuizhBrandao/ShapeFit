@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'config/app_config.dart';
 import 'providers/active_workout_provider.dart';
 import 'screens/home_screen.dart';
 
@@ -17,13 +18,15 @@ class ShapeFitApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final config = AppConfig.current;
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ActiveWorkoutProvider()),
       ],
       child: MaterialApp(
-        title: 'ShapeFit',
-        debugShowCheckedModeBanner: false,
+        title: config.appName,
+        debugShowCheckedModeBanner: config.enableDebugBanner,
         theme: ThemeData.dark().copyWith(
           primaryColor: Colors.blueAccent,
           scaffoldBackgroundColor: const Color(0xFF121212),

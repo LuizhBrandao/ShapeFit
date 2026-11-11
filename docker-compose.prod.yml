@@ -1,0 +1,45 @@
+services:
+  shapefit-postgres-prod:
+    image: postgres:16-alpine
+    container_name: shapefit-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-shapefit_prod}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-shapefit_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shapefit-prod-net
+
+  shapefit-redis-prod:
+    image: redis:7-alpine
+    container_name: shapefit-redis-prod
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shapefit-prod-net
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+
+networks:
+  shapefit-prod-net:
+    driver: bridge

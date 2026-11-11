@@ -1,0 +1,48 @@
+name: ShapeFit CD - Production Environment
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-production:
+    name: Build & Package Production Release
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compilar API para Produção
+        run: |
+          dotnet publish src/ShapeFit.Api/ShapeFit.Api.csproj -c Release -o ./publish-api-prod
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build Web para Produção
+        run: |
+          cd shapefit_mobile
+          flutter pub get
+          flutter build web --dart-define=ENV=prod --release --base-href "/ShapeFit/"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'shapefit_mobile/build/web'
+
+      - name: Deploy to GitHub Pages (Produção Web)
+        id: deployment
+        uses: actions/deploy-pages@v4
