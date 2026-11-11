@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/exercise_instruction.dart';
-import 'biomechanical_animation_viewer.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../models/beginner_exercise_guide.dart';
 
 class ExerciseVideoModal extends StatelessWidget {
   final String exerciseName;
@@ -16,14 +16,21 @@ class ExerciseVideoModal extends StatelessWidget {
     );
   }
 
+  Future<void> _openRealVideo(String videoId) async {
+    final uri = Uri.parse('https://www.youtube.com/watch?v=$videoId');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final instruction = ExerciseInstructionRepository.getInstruction(exerciseName);
+    final guide = BeginnerExerciseGuideRepository.getGuide(exerciseName);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.88,
+      height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E),
+        color: Color(0xFF161616),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -41,6 +48,8 @@ class ExerciseVideoModal extends StatelessWidget {
               ),
             ),
           ),
+
+          // Título e Cabeçalho Amigável
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
@@ -50,30 +59,31 @@ class ExerciseVideoModal extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        instruction.exerciseName,
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: Colors.blueAccent.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(4),
+                              color: Colors.greenAccent.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.4)),
                             ),
-                            child: Text(
-                              instruction.targetMuscle.displayName,
-                              style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                            child: const Text(
+                              'GUIA PASSO A PASSO PARA INICIANTES',
+                              style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '• Vídeo/Animação em Loop Contínuo',
-                            style: TextStyle(color: Colors.white38, fontSize: 11),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        guide.exerciseName,
+                        style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Músculo: ${guide.targetMuscle.displayName}',
+                        style: const TextStyle(color: Colors.blueAccent, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -86,47 +96,124 @@ class ExerciseVideoModal extends StatelessWidget {
             ),
           ),
 
-          // Player de Animação Biomecânica Nativa com Loop Contínuo & Cadência 3-1-1
-          Container(
-            height: 230,
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF141414),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BiomechanicalAnimationViewer(exerciseName: instruction.exerciseName),
+          // Card de Vídeo Real no YouTube (Curto e com treinador humano)
+          InkWell(
+            onTap: () => _openRealVideo(guide.youtubeVideoId),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              height: 180,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.6), width: 1.5),
+                image: DecorationImage(
+                  image: NetworkImage(
+                    'https://img.youtube.com/vi/${guide.youtubeVideoId}/hqdefault.jpg',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.play_arrow, color: Colors.white, size: 36),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'ASSISTIR EXECUÇÃO REAL EM VÍDEO (CURTO)',
+                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Toque para abrir demonstração com personal humano',
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.video_library, color: Colors.redAccent, size: 14),
+                          SizedBox(width: 4),
+                          Text('VÍDEO REAL', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
             ),
           ),
 
-          // Guia Biomecânico de Execução (RP Hypertrophy)
+          // Guia Prático para Quem Nunca Pisou na Academia
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               children: [
-                _buildInstructionSection(
-                  icon: Icons.tune,
-                  title: '1. Posicionamento (Setup)',
-                  content: instruction.setup,
+                _buildGuideCard(
+                  icon: Icons.search,
+                  badge: 'PASSO 1: COMO ACHAR NA ACADEMIA',
+                  title: guide.machineName,
+                  content: guide.equipmentAppearance,
                   color: Colors.tealAccent,
                 ),
                 const SizedBox(height: 12),
-                _buildInstructionSection(
-                  icon: Icons.directions_run,
-                  title: '2. Execução Biomecânica',
-                  content: instruction.execution,
+                _buildGuideCard(
+                  icon: Icons.tune,
+                  badge: 'PASSO 2: REGULAGEM DO APARELHO',
+                  title: 'Ajuste do Banco e Pino de Peso',
+                  content: guide.pinAndWeightSetup,
+                  color: Colors.amberAccent,
+                ),
+                const SizedBox(height: 12),
+                _buildGuideCard(
+                  icon: Icons.airline_seat_recline_normal,
+                  badge: 'PASSO 3: POSIÇÃO INICIAL',
+                  title: 'Como Entrar e se Posicionar',
+                  content: guide.startPosition,
                   color: Colors.blueAccent,
                 ),
                 const SizedBox(height: 12),
-                _buildInstructionSection(
-                  icon: Icons.warning_amber_rounded,
-                  title: '3. Erros Comuns a Evitar',
-                  content: instruction.commonMistakes,
-                  color: Colors.orangeAccent,
+                _buildGuideCard(
+                  icon: Icons.play_circle_outline,
+                  badge: 'PASSO 4: COMO FAZER O MOVIMENTO',
+                  title: 'Execução Passo a Passo',
+                  content: guide.movementStepByStep,
+                  color: Colors.purpleAccent,
                 ),
+                const SizedBox(height: 12),
+                _buildGuideCard(
+                  icon: Icons.favorite,
+                  badge: 'PASSO 5: O QUE VOCÊ DEVE SENTIR',
+                  title: 'Teste de Sensação Muscular',
+                  content: guide.feelingCheck,
+                  color: Colors.greenAccent,
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -135,8 +222,9 @@ class ExerciseVideoModal extends StatelessWidget {
     );
   }
 
-  Widget _buildInstructionSection({
+  Widget _buildGuideCard({
     required IconData icon,
+    required String badge,
     required String title,
     required String content,
     required Color color,
@@ -144,24 +232,32 @@ class ExerciseVideoModal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 8),
-              Text(title, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold)),
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                badge,
+                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
           Text(
             content,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.45),
           ),
         ],
       ),
