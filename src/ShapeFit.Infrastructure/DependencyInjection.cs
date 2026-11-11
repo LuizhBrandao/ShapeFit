@@ -28,6 +28,8 @@ public static class DependencyInjection
 
         services.AddScoped<IWorkoutSessionRepository, WorkoutSessionRepository>();
         services.AddScoped<IWorkoutReadRepository, WorkoutReadRepository>();
+        services.AddScoped<IRoutineTemplateRepository, RoutineTemplateRepository>();
+        services.AddScoped<IMesocycleRepository, MesocycleRepository>();
 
         // Hot Cache Resiliente via Redis e MessagePack
         var redisConnectionString = configuration.GetConnectionString("Redis") ?? "localhost:6379";

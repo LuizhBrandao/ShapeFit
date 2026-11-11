@@ -8,5 +8,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/ShapeFit.Domain.Tests/ShapeFit.Domain.Tests.csproj" />
     <Project Path="tests/ShapeFit.Infrastructure.Tests/ShapeFit.Infrastructure.Tests.csproj" />
+    <Project Path="tests/ShapeFit.Application.Tests/ShapeFit.Application.Tests.csproj" />
   </Folder>
 </Solution>

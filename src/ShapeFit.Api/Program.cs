@@ -34,4 +34,8 @@ app.MapGroup("/api/workouts")
    .WithTags("Workouts")
    .MapWorkoutEndpoints();
 
+app.MapGroup("/api/routines")
+   .WithTags("Routines")
+   .MapRoutineEndpoints();
+
 app.Run();

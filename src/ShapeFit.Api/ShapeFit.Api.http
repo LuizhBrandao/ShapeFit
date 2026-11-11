@@ -42,3 +42,32 @@ Accept: application/json
 X-Correlation-ID: 8b4c5d6e-9f0a-5b2c-c3d4-e5f6a7b8c9d0
 
 ###
+
+### Prescrever Ficha Científica e Iniciar Mesociclo de 30 Treinos (Ex: PPL 60min)
+POST {{ShapeFit.Api_HostAddress}}/api/routines/prescribe
+Content-Type: application/json
+X-Correlation-ID: 9c5d6e7f-0a1b-6c3d-d4e5-f6a7b8c9d0e1
+
+{
+  "userId": "{{UserId}}",
+  "routineName": "ShapeFit Hipertrofia • PPL 60 Minutos",
+  "division": 3,
+  "sessionDurationMinutes": 60,
+  "customDescription": "Prescrição calibrada com sobrecarga progressiva"
+}
+
+###
+
+### Consultar Ficha Ativa do Usuário
+GET {{ShapeFit.Api_HostAddress}}/api/routines/users/{{UserId}}/active
+Accept: application/json
+X-Correlation-ID: 0d6e7f8a-1b2c-7d4e-e5f6-a7b8c9d0e1f2
+
+###
+
+### Consultar Progresso do Mesociclo Ativo de 30 Treinos
+GET {{ShapeFit.Api_HostAddress}}/api/routines/users/{{UserId}}/mesocycle
+Accept: application/json
+X-Correlation-ID: 1e7f8a9b-2c3d-8e5f-f6a7-b8c9d0e1f2a3
+
+###
