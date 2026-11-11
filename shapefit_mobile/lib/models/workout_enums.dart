@@ -44,3 +44,24 @@ enum MuscleGroup {
     );
   }
 }
+
+enum WorkoutDivision {
+  fullBody(1, 'Full Body'),
+  upperLower(2, 'AB (Superior / Inferior)'),
+  pushPullLegs(3, 'ABC (Push / Pull / Legs)'),
+  abcd(4, 'ABCD (Peito+Ombro / Costas+Trapézio / Pernas / Braços)'),
+  abcde(5, 'ABCDE (Isolamento Máximo 5 Dias)'),
+  custom(99, 'Personalizado');
+
+  final int value;
+  final String label;
+
+  const WorkoutDivision(this.value, this.label);
+
+  static WorkoutDivision fromValue(int val) {
+    return WorkoutDivision.values.firstWhere(
+      (e) => e.value == val,
+      orElse: () => WorkoutDivision.custom,
+    );
+  }
+}

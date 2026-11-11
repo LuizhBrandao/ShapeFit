@@ -19,6 +19,8 @@ class CustomRoutineExerciseTemplate {
 
 class CustomRoutineTemplate {
   final String id;
+  final String? routineTemplateId;
+  final String? mesocycleId;
   String name;
   String description;
   final List<CustomRoutineExerciseTemplate> exercises;
@@ -27,6 +29,8 @@ class CustomRoutineTemplate {
 
   CustomRoutineTemplate({
     String? id,
+    this.routineTemplateId,
+    this.mesocycleId,
     required this.name,
     this.description = '',
     List<CustomRoutineExerciseTemplate>? exercises,

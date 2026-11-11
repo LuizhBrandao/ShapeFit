@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
-import '../models/custom_routine_model.dart';
+import '../models/routine_dto_models.dart';
 import '../models/workout_enums.dart';
 import '../providers/active_workout_provider.dart';
-import '../services/gemini_routine_service.dart';
+import '../services/workout_api_service.dart';
 
 class AiWorkoutCoachScreen extends StatefulWidget {
   const AiWorkoutCoachScreen({super.key});
@@ -14,11 +13,11 @@ class AiWorkoutCoachScreen extends StatefulWidget {
 }
 
 class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
-  final GeminiRoutineService _coachService = GeminiRoutineService();
+  final WorkoutApiService _apiService = WorkoutApiService();
 
   int _currentStep = 0;
   bool _isLoading = false;
-  RoutineRecommendation? _recommendation;
+  PrescribeRoutineResponse? _recommendation;
 
   // Parâmetros da IA Interativa (com escolha de divisão clássica)
   String _selectedDivision = 'ABC (Push / Pull / Legs)';
@@ -49,105 +48,75 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
 
   Future<void> _generatePlan() async {
     setState(() => _isLoading = true);
-    final plan = await _coachService.generateRoutine(
-      divisionChoice: _selectedDivision,
-      daysPerWeek: _daysPerWeek,
-      fitnessLevel: _fitnessLevel,
-      primaryGoal: _primaryGoal,
-      equipmentAccess: _equipment,
-      focusMuscles: _focusMuscles.toList(),
+    final provider = context.read<ActiveWorkoutProvider>();
+
+    WorkoutDivision division = WorkoutDivision.pushPullLegs;
+    if (_selectedDivision.startsWith('AB (')) {
+      division = WorkoutDivision.upperLower;
+    } else if (_selectedDivision.startsWith('ABC (')) {
+      division = WorkoutDivision.pushPullLegs;
+    } else if (_selectedDivision.startsWith('ABCD')) {
+      division = WorkoutDivision.abcd;
+    } else if (_selectedDivision.startsWith('ABCDE')) {
+      division = WorkoutDivision.abcde;
+    }
+
+    final routineName = 'Ficha IA - ${_selectedDivision.split(' ').first} (${_duration} min)';
+    final customDesc = 'Objetivo: $_primaryGoal • Nível: $_fitnessLevel • Duração: ${_duration} min';
+
+    final plan = await _apiService.prescribeRoutine(
+      userId: provider.currentUserId,
+      routineName: routineName,
+      division: division,
       sessionDurationMinutes: _duration,
+      customDescription: customDesc,
     );
+
     setState(() {
       _isLoading = false;
       _recommendation = plan;
     });
+
+    if (plan == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Falha ao conectar com o serviço de prescrição do backend. Verifique a rede.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   void _saveAllDaysAsUserRoutines(BuildContext context) {
     if (_recommendation == null) return;
     final provider = context.read<ActiveWorkoutProvider>();
 
-    for (var day in _recommendation!.days) {
-      final template = CustomRoutineTemplate(
-        name: day.dayName,
-        description: '${day.exercises.length} exercícios gerados pela IA',
-        completedCount: 0,
-        targetCount: 30, // 30 treinos individuais dessa rotina
-        exercises: day.exercises.map((ex) {
-          MuscleGroup muscle = MuscleGroup.chest;
-          final target = ex.targetMuscle.toLowerCase();
-          if (target.contains('costa') || target.contains('dorsal')) {
-            muscle = MuscleGroup.back;
-          } else if (target.contains('ombro') || target.contains('deltoide')) {
-            muscle = MuscleGroup.shoulders;
-          } else if (target.contains('bíceps') || target.contains('biceps')) {
-            muscle = MuscleGroup.biceps;
-          } else if (target.contains('tríceps') || target.contains('triceps')) {
-            muscle = MuscleGroup.triceps;
-          } else if (target.contains('quadríceps') || target.contains('perna')) {
-            muscle = MuscleGroup.quadriceps;
-          } else if (target.contains('panturrilha')) {
-            muscle = MuscleGroup.calves;
-          } else if (target.contains('abdômen') || target.contains('core')) {
-            muscle = MuscleGroup.abs;
-          }
-
-          return CustomRoutineExerciseTemplate(
-            exerciseId: 'ai-ex-${const Uuid().v4()}',
-            name: ex.name,
-            targetMuscle: muscle,
-          );
-        }).toList(),
-      );
-
-      provider.addCustomRoutine(template);
-    }
+    provider.setActivePrescription(_recommendation!);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Todas as ${_recommendation!.days.length} fichas foram salvas nas Suas Rotinas com 30 treinos cada!'),
+        content: Text('Todas as ${_recommendation!.days.length} fichas foram sincronizadas e salvas com Mesociclo de 30 treinos!'),
         backgroundColor: Colors.green,
       ),
     );
   }
 
-  void _importDayToActiveWorkout(BuildContext context, RoutineWorkoutDay day) {
+  void _importDayToActiveWorkout(BuildContext context, RoutineDayDto day) {
+    if (_recommendation == null) return;
     final workoutProvider = context.read<ActiveWorkoutProvider>();
-    workoutProvider.startWorkout(day.dayName);
 
-    for (var ex in day.exercises) {
-      MuscleGroup muscle = MuscleGroup.chest;
-      final target = ex.targetMuscle.toLowerCase();
-      if (target.contains('costa') || target.contains('dorsal')) {
-        muscle = MuscleGroup.back;
-      } else if (target.contains('ombro') || target.contains('deltoide')) {
-        muscle = MuscleGroup.shoulders;
-      } else if (target.contains('bíceps') || target.contains('biceps')) {
-        muscle = MuscleGroup.biceps;
-      } else if (target.contains('tríceps') || target.contains('triceps')) {
-        muscle = MuscleGroup.triceps;
-      } else if (target.contains('quadríceps') || target.contains('perna')) {
-        muscle = MuscleGroup.quadriceps;
-      } else if (target.contains('panturrilha')) {
-        muscle = MuscleGroup.calves;
-      } else if (target.contains('abdômen') || target.contains('core')) {
-        muscle = MuscleGroup.abs;
-      }
-
-      workoutProvider.addExercise(
-        'ai-${ex.name.hashCode.abs()}',
-        ex.name,
-        muscle,
-      );
-    }
+    workoutProvider.startWorkoutFromPrescribedDay(
+      prescription: _recommendation!,
+      day: day,
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Rotina "${day.dayName}" carregada no seu treino ativo!'),
+        content: Text('Rotina "${day.name}" carregada no seu treino ativo!'),
         backgroundColor: Colors.blueAccent,
       ),
     );
+  }
   }
 
   @override
@@ -453,13 +422,13 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                         const Icon(Icons.verified, color: Colors.amberAccent, size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          rec.divisionType.toUpperCase(),
+                          rec.division.label.toUpperCase(),
                           style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ],
                     ),
                     Text(
-                      '${rec.days.length} Fichas',
+                      '${rec.days.length} Fichas • ${rec.totalSets} séries',
                       style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -471,7 +440,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  rec.description,
+                  'Prescrição gerada pelo motor fisiológico do ShapeFit backend com calibração ótima de volume (${rec.totalExercises} exercícios e ${rec.totalSets} séries totais).',
                   style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 16),
@@ -517,7 +486,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
     );
   }
 
-  Widget _buildDayCard(RoutineWorkoutDay day) {
+  Widget _buildDayCard(RoutineDayDto day) {
     return Card(
       color: const Color(0xFF1E1E1E),
       margin: const EdgeInsets.only(bottom: 16),
@@ -532,7 +501,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    day.dayName,
+                    day.name,
                     style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -563,7 +532,7 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${ex.sets}x ${ex.repRange}',
+                          '${ex.targetSets}x ${ex.repRange}',
                           style: const TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -573,12 +542,12 @@ class _AiWorkoutCoachScreenState extends State<AiWorkoutCoachScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              ex.name,
+                              ex.customExerciseName,
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${ex.targetMuscle} • ${ex.rirOrRpe}',
+                              '${ex.targetMuscle.displayName} • RIR ${ex.targetRir ?? 2}${ex.notes != null ? ' • ${ex.notes}' : ''}',
                               style: const TextStyle(color: Colors.white38, fontSize: 11),
                             ),
                           ],

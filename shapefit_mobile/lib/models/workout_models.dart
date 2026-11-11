@@ -84,6 +84,9 @@ class WorkoutSessionModel {
   String? clientSyncId;
   String? notes;
   final List<ExerciseLogModel> exercises;
+  String? routineTemplateId;
+  String? routineDayId;
+  String? mesocycleId;
 
   WorkoutSessionModel({
     required this.id,
@@ -94,6 +97,9 @@ class WorkoutSessionModel {
     this.clientSyncId,
     this.notes,
     required this.exercises,
+    this.routineTemplateId,
+    this.routineDayId,
+    this.mesocycleId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -105,5 +111,8 @@ class WorkoutSessionModel {
     'clientSyncId': clientSyncId,
     'notes': notes,
     'exercises': exercises.map((e) => e.toJson()).toList(),
+    'routineTemplateId': routineTemplateId,
+    'routineDayId': routineDayId,
+    'mesocycleId': mesocycleId,
   };
 }
